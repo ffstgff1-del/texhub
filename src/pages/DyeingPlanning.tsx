@@ -25,6 +25,7 @@ import { ChemicalRequirementsTable } from '../components/ChemicalRequirementsTab
 import { MachineScheduleView } from '../components/MachineScheduleView';
 import { PlanningDashboard } from '../components/PlanningDashboard';
 import { AlertDialog } from '../components/AlertDialog';
+import { PasswordInputDialog } from '../components/PasswordInputDialog';
 import { 
   DyeingPlan, 
   MachineSchedule, 
@@ -45,6 +46,7 @@ import {
   orderBy, 
   doc 
 } from 'firebase/firestore';
+import { EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { useToast } from '../components/ui/ToastProvider';
 import * as Select from '@radix-ui/react-select';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
@@ -65,6 +67,12 @@ export function DyeingPlanning({ user }: DyeingPlanningProps) {
   const [editingPlan, setEditingPlan] = useState<DyeingPlan | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  
+  // Password authorization states
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [isAuthenticatingPassword, setIsAuthenticatingPassword] = useState(false);
+  const [passwordAuthError, setPasswordAuthError] = useState<string | null>(null);
+  const [planToDelete, setPlanToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const [formData, setFormData] = useState<DyeingPlan>({
     ...initialDyeingPlan,
@@ -212,9 +220,57 @@ export function DyeingPlanning({ user }: DyeingPlanningProps) {
       showToast({ message: "Error deleting dyeing plan. Check console for details.", type: 'error' });
     } finally {
       setDeleteConfirm(null);
+      setPlanToDelete(null);
     }
   };
 
+  const handleDeleteClick = (planId: string, planName: string) => {
+    if (!user || !user.email) {
+      showToast({
+        message: "Please log in with an email and password to delete plans.",
+        type: 'warning',
+      });
+      return;
+    }
+    setPlanToDelete({ id: planId, name: planName });
+    setIsPasswordDialogOpen(true);
+    setPasswordAuthError(null);
+  };
+
+  const handlePasswordAuthorization = async (password: string) => {
+    if (!user || !user.email || !planToDelete) {
+      console.error("Missing user, email, or plan to delete:", { user: !!user, email: user?.email, planToDelete });
+      return;
+    }
+
+    setIsAuthenticatingPassword(true);
+    setPasswordAuthError(null);
+
+    try {
+      console.log("Attempting to reauthenticate user:", user.uid);
+      const credential = EmailAuthProvider.credential(user.email, password);
+      await reauthenticateWithCredential(user, credential);
+      console.log("Reauthentication successful");
+      
+      setIsPasswordDialogOpen(false);
+      setDeleteConfirm(planToDelete.id); // This will trigger the existing delete confirmation
+    } catch (error: any) {
+      console.error("Password reauthentication failed:", error);
+      let errorMessage = "Password authorization failed. Please try again.";
+      if (error.code === 'auth/wrong-password') {
+        errorMessage = "Incorrect password. Please try again.";
+      } else if (error.code === 'auth/user-mismatch') {
+        errorMessage = "User mismatch. Please log in again.";
+      } else if (error.code === 'auth/invalid-credential') {
+        errorMessage = "Invalid credentials. Please check your email and password.";
+      } else if (error.code === 'auth/requires-recent-login') {
+        errorMessage = "This action requires a recent login. Please log in again.";
+      }
+      setPasswordAuthError(errorMessage);
+    } finally {
+      setIsAuthenticatingPassword(false);
+    }
+  };
   const handleStatusChange = async (planId: string, newStatus: string) => {
     if (!user) return;
 
@@ -577,7 +633,7 @@ export function DyeingPlanning({ user }: DyeingPlanningProps) {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => setDeleteConfirm(plan.id)}
+                                    onClick={() => handleDeleteClick(plan.id, plan.planName)}
                                     className="text-red-600 hover:text-red-700"
                                   >
                                     <Trash2 className="h-4 w-4" />
@@ -724,7 +780,7 @@ export function DyeingPlanning({ user }: DyeingPlanningProps) {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => setDeleteConfirm(plan.id)}
+                                  onClick={() => handleDeleteClick(plan.id, plan.planName)}
                                   className="text-red-600 hover:text-red-700"
                                   title="Delete Plan"
                                 >
@@ -758,6 +814,21 @@ export function DyeingPlanning({ user }: DyeingPlanningProps) {
           cancelText="Cancel"
         />
       )}
+
+      {/* Password Input Dialog for Deletion */}
+      <PasswordInputDialog
+        isOpen={isPasswordDialogOpen}
+        onClose={() => {
+          setIsPasswordDialogOpen(false);
+          setPlanToDelete(null);
+          setPasswordAuthError(null);
+        }}
+        onConfirm={handlePasswordAuthorization}
+        title="Authorize Deletion"
+        message={`Please enter your password to authorize the deletion of "${planToDelete?.name}".`}
+        isAuthenticating={isAuthenticatingPassword}
+        error={passwordAuthError}
+      />
     </div>
   );
 }

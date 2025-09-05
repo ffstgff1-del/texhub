@@ -55,7 +55,7 @@ export const defaultSettings: UserSettings = {
   dateFormat: 'DD/MM/YYYY',
   timeFormat: '24h',
   language: 'English',
-  theme: 'dark', // Default to dark theme for consistency
+  theme: 'light', // Default to light theme
   autoSave: true,
   notifications: true,
   printHeaderLogo: true,
