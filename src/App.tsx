@@ -416,8 +416,8 @@ function ChatPage({ onBack, initialMessage }: { onBack: () => void; initialMessa
             </button>
           </div>
 
-          <div className={`flex gap-3 mb-6 justify-center transition-all duration-500 ease-in-out overflow-hidden flex-wrap ${
-            showQuickQuestions ? 'max-h-16 opacity-100' : 'max-h-0 opacity-0'
+          <div className={`flex gap-3 justify-center transition-all duration-500 ease-in-out overflow-hidden flex-wrap ${
+            showQuickQuestions ? 'max-h-16 opacity-100 mb-6' : 'max-h-0 opacity-0'
           }`}>
             <button onClick={() => handleSendMessage('Who are you? I want to know more about you.')} className="group flex flex-row items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-300 hover:shadow-md hover:border-gray-300">
               <div className="w-5 h-5 rounded-md bg-blue-50 flex items-center justify-center transition-transform duration-300 group-hover:rotate-12">
