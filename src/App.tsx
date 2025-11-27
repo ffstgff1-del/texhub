@@ -57,7 +57,7 @@ const aiResponses = [
   "I'm interested in AI, Developer tools, working at 42 Paris, and sports. Feel free to ask me about any of these topics!",
 ];
 
-function HomePage({ onStartChat }: { onStartChat: () => void }) {
+function HomePage({ onStartChat }: { onStartChat: (message?: string) => void }) {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <header className="p-6">
@@ -95,19 +95,19 @@ function HomePage({ onStartChat }: { onStartChat: () => void }) {
               className="w-full px-6 py-4 pr-14 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               onKeyPress={(e) => e.key === 'Enter' && onStartChat()}
             />
-            <button onClick={onStartChat} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
+            <button onClick={() => onStartChat()} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
               <ArrowRight className="w-5 h-5 text-white" />
             </button>
           </div>
         </div>
 
         <div className="flex gap-4">
-          <button onClick={onStartChat} className="flex flex-col items-center gap-2 px-8 py-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors min-w-[100px]">
+          <button onClick={() => onStartChat('Who are you? I want to know more about you.')} className="flex flex-col items-center gap-2 px-8 py-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors min-w-[100px]">
             <User className="w-5 h-5 text-blue-500" />
             <span className="text-sm font-medium">Me</span>
           </button>
 
-          <button onClick={onStartChat} className="flex flex-col items-center gap-2 px-8 py-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors min-w-[100px]">
+          <button onClick={() => onStartChat('Show me your projects')} className="flex flex-col items-center gap-2 px-8 py-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors min-w-[100px]">
             <FolderKanban className="w-5 h-5 text-green-500" />
             <span className="text-sm font-medium">Projects</span>
           </button>
@@ -132,7 +132,7 @@ function HomePage({ onStartChat }: { onStartChat: () => void }) {
   );
 }
 
-function ChatPage({ onBack }: { onBack: () => void }) {
+function ChatPage({ onBack, initialMessage }: { onBack: () => void; initialMessage?: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -142,6 +142,12 @@ function ChatPage({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    if (initialMessage) {
+      handleSendMessage(initialMessage);
+    }
+  }, []);
 
   const getAIResponse = (userInput: string) => {
     const lowerInput = userInput.toLowerCase();
@@ -475,13 +481,24 @@ function ChatPage({ onBack }: { onBack: () => void }) {
 
 function App() {
   const [isInChat, setIsInChat] = useState(false);
+  const [initialMessage, setInitialMessage] = useState<string | undefined>(undefined);
+
+  const handleStartChat = (message?: string) => {
+    setInitialMessage(message);
+    setIsInChat(true);
+  };
+
+  const handleBack = () => {
+    setIsInChat(false);
+    setInitialMessage(undefined);
+  };
 
   return (
     <>
       {isInChat ? (
-        <ChatPage onBack={() => setIsInChat(false)} />
+        <ChatPage onBack={handleBack} initialMessage={initialMessage} />
       ) : (
-        <HomePage onStartChat={() => setIsInChat(true)} />
+        <HomePage onStartChat={handleStartChat} />
       )}
     </>
   );
