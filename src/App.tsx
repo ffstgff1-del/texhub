@@ -138,16 +138,11 @@ function ChatPage({ onBack, initialMessage }: { onBack: () => void; initialMessa
   const [isLoading, setIsLoading] = useState(false);
   const [showQuickQuestions, setShowQuickQuestions] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const initialMessageSentRef = useRef(false);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  useEffect(() => {
-    if (initialMessage) {
-      handleSendMessage(initialMessage);
-    }
-  }, []);
 
   const getAIResponse = (userInput: string) => {
     const lowerInput = userInput.toLowerCase();
@@ -202,6 +197,13 @@ function ChatPage({ onBack, initialMessage }: { onBack: () => void; initialMessa
       setIsLoading(false);
     }, 1000);
   };
+
+  useEffect(() => {
+    if (initialMessage && !initialMessageSentRef.current) {
+      initialMessageSentRef.current = true;
+      handleSendMessage(initialMessage);
+    }
+  }, [initialMessage]);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
